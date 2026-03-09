@@ -283,12 +283,14 @@ export default function SettingsPage() {
                 {...registerProfile("name", { required: "Name is required" })}
                 error={!!profileErrors.name}
                 helperText={profileErrors.name?.message}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PersonRoundedIcon color="action" />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonRoundedIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               <TextField
@@ -298,12 +300,14 @@ export default function SettingsPage() {
                 error={!!profileErrors.username}
                 helperText={profileErrors.username?.message}
                 placeholder="e.g. jdoe"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <BadgeRoundedIcon color="action" />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BadgeRoundedIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
               />
               <TextField
@@ -374,76 +378,97 @@ export default function SettingsPage() {
               label="Current password"
               type={showCurrentPassword ? "text" : "password"}
               fullWidth
+              autoComplete="current-password"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockRoundedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowCurrentPassword((v) => !v)}
+                        edge="end"
+                        size="small"
+                        aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                      >
+                        {showCurrentPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  "data-1p-ignore": "true",
+                  "data-lpignore": "true",
+                },
+              }}
               {...registerPassword("currentPassword", { required: "Required" })}
               error={!!passwordErrors.currentPassword}
               helperText={passwordErrors.currentPassword?.message}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockRoundedIcon color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowCurrentPassword((v) => !v)}
-                      edge="end"
-                      size="small"
-                      aria-label={showCurrentPassword ? "Hide password" : "Show password"}
-                    >
-                      {showCurrentPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
             />
             <TextField
               label="New password"
               type={showNewPassword ? "text" : "password"}
               fullWidth
+              autoComplete="new-password"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockRoundedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowNewPassword((v) => !v)}
+                        edge="end"
+                        size="small"
+                        aria-label={showNewPassword ? "Hide password" : "Show password"}
+                      >
+                        {showNewPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  "data-1p-ignore": "true",
+                  "data-lpignore": "true",
+                },
+              }}
               {...registerPassword("newPassword", {
                 required: "Required",
                 minLength: { value: 6, message: "At least 6 characters" },
               })}
               error={!!passwordErrors.newPassword}
               helperText={passwordErrors.newPassword?.message}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockRoundedIcon color="action" />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowNewPassword((v) => !v)}
-                      edge="end"
-                      size="small"
-                      aria-label={showNewPassword ? "Hide password" : "Show password"}
-                    >
-                      {showNewPassword ? <VisibilityOffRoundedIcon /> : <VisibilityRoundedIcon />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
             />
             <TextField
               label="Confirm new password"
               type="password"
               fullWidth
+              autoComplete="new-password"
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockRoundedIcon color="action" />
+                    </InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  "data-1p-ignore": "true",
+                  "data-lpignore": "true",
+                },
+              }}
               {...registerPassword("confirmPassword", {
                 required: "Required",
                 validate: (v) => v === newPassword || "Passwords do not match",
               })}
               error={!!passwordErrors.confirmPassword}
               helperText={passwordErrors.confirmPassword?.message}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockRoundedIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
             />
             <Button
               type="submit"

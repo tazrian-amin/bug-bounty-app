@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -17,6 +17,56 @@ model User {
   passwordHash  String
   accounts      Account[]
   sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model Bug {
+  id                   String          @id @default(cuid())
+  title                String
+  description          String
+  stepsToReproduce     String
+  expectedResult       String
+  actualResult         String
+  severity             String
+  status               String          @default("new")
+  reportedBy           String
+  reportedByEmail      String
+  resolvedBy           String?
+  resolvedByEmail      String?
+  resolvedAt           DateTime?
+  resolvingDescription String?
+  verifiedAt           DateTime?
+  verifiedBy           String?
+  verifiedByEmail      String?
+  verifierRemarks      String?
+  environment          String?
+  version              String?
+  locationRoute        String?
+  appName              String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  attachments          BugAttachment[]
+  comments             BugComment[]
+}
+
+model BugAttachment {
+  id     String @id
+  bugId  String
+  name   String
+  type   String
+  size   Int
+  url    String
+  bug    Bug    @relation(fields: [bugId], references: [id], onDelete: Cascade)
+}
+
+model BugComment {
+  id          String   @id @default(cuid())
+  bugId       String
+  authorName  String
+  authorEmail String
+  body        String
+  createdAt   DateTime @default(now())
+  bug         Bug      @relation(fields: [bugId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -52,4 +102,14 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -10,6 +10,13 @@ export interface UserProfile {
   avatar: string | null;
 }
 
+export type CreateUserInput = {
+  email: string;
+  name: string;
+  username: string;
+  password: string;
+};
+
 const SALT_ROUNDS = 10;
 let seeded = false;
 
@@ -76,6 +83,13 @@ export async function getUserByEmail(email: string): Promise<UserProfile | null>
   return toUserProfile(user);
 }
 
+export async function getUserById(id: string): Promise<UserProfile | null> {
+  await ensureSeedUsers();
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user || !user.email) return null;
+  return toUserProfile(user);
+}
+
 export async function validatePassword(email: string, password: string): Promise<boolean> {
   const user = await getUserByEmail(email);
   if (!user) return false;
@@ -86,6 +100,21 @@ export async function getProfileForSession(email: string): Promise<{ name: strin
   const user = await getUserByEmail(email);
   if (!user) return null;
   return { name: user.name, username: user.username };
+}
+
+export async function createUser(input: CreateUserInput): Promise<UserProfile> {
+  await ensureSeedUsers();
+  const user = await prisma.user.create({
+    data: {
+      email: input.email.toLowerCase(),
+      name: input.name,
+      username: input.username,
+      passwordHash: await bcrypt.hash(input.password, SALT_ROUNDS),
+      avatar: null,
+      image: null,
+    },
+  });
+  return toUserProfile(user);
 }
 
 export async function updateProfile(
@@ -103,7 +132,7 @@ export async function updateProfile(
       ...(updates.name !== undefined ? { name: updates.name } : {}),
       ...(updates.username !== undefined ? { username: updates.username } : {}),
       ...(updates.avatar !== undefined ? { avatar: updates.avatar } : {}),
-            ...(updates.avatar !== undefined ? { image: updates.avatar } : {}),
+      ...(updates.avatar !== undefined ? { image: updates.avatar } : {}),
     },
   });
 
@@ -118,6 +147,18 @@ export async function updatePassword(email: string, newPassword: string): Promis
 
   await prisma.user.update({
     where: { email: normalized },
+    data: { passwordHash: await bcrypt.hash(newPassword, SALT_ROUNDS) },
+  });
+  return true;
+}
+
+export async function updatePasswordByUserId(userId: string, newPassword: string): Promise<boolean> {
+  await ensureSeedUsers();
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing) return false;
+
+  await prisma.user.update({
+    where: { id: userId },
     data: { passwordHash: await bcrypt.hash(newPassword, SALT_ROUNDS) },
   });
   return true;

@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/login"];
+const publicPaths = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 export default async function proxy(request: NextRequest) {
   const token = await getToken({

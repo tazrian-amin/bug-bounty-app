@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getBugById, updateBug, deleteBug } from "@/lib/bugs";
 import type { Bug } from "@/types/bug";
+import { UpdateBugSchema } from "@/lib/bug-schemas";
 
 export async function GET(
   _request: Request,
@@ -13,7 +14,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const bug = getBugById(id);
+  const bug = await getBugById(id);
   if (!bug) {
     return NextResponse.json({ error: "Bug not found" }, { status: 404 });
   }
@@ -30,32 +31,14 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await request.json();
-  const allowed = [
-    "title",
-    "description",
-    "stepsToReproduce",
-    "expectedResult",
-    "actualResult",
-    "severity",
-    "status",
-    "environment",
-    "version",
-    "locationRoute",
-    "appName",
-    "resolvedBy",
-    "resolvedByEmail",
-    "resolvedAt",
-    "resolvingDescription",
-    "verifiedAt",
-    "verifiedBy",
-    "verifiedByEmail",
-    "verifierRemarks",
-  ] as const;
-  const updates: Record<string, unknown> = {};
-  for (const key of allowed) {
-    if (body[key] !== undefined) updates[key] = body[key];
+  const parsed = UpdateBugSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message ?? "Invalid update payload";
+    return NextResponse.json({ error: firstError }, { status: 400 });
   }
-  const newStatus = body.status as string | undefined;
+
+  const updates: Record<string, unknown> = { ...parsed.data };
+  const newStatus = parsed.data.status;
   if (
     (newStatus === "resolved" || newStatus === "closed") &&
     session.user.name &&
@@ -63,15 +46,15 @@ export async function PATCH(
   ) {
     updates.resolvedBy = session.user.name;
     updates.resolvedByEmail = session.user.email;
-    if (body.resolvedAt === undefined) updates.resolvedAt = new Date().toISOString();
+    if (parsed.data.resolvedAt === undefined) updates.resolvedAt = new Date().toISOString();
   }
-  if (body.verifierRemarks !== undefined || body.verifiedAt !== undefined) {
-    updates.verifiedAt = body.verifiedAt ?? new Date().toISOString();
-    updates.verifiedBy = body.verifiedBy ?? session.user.name ?? "";
-    updates.verifiedByEmail = body.verifiedByEmail ?? session.user.email ?? "";
+  if (parsed.data.verifierRemarks !== undefined || parsed.data.verifiedAt !== undefined) {
+    updates.verifiedAt = parsed.data.verifiedAt ?? new Date().toISOString();
+    updates.verifiedBy = parsed.data.verifiedBy ?? session.user.name ?? "";
+    updates.verifiedByEmail = parsed.data.verifiedByEmail ?? session.user.email ?? "";
     updates.status = "verified";
   }
-  const bug = updateBug(id, updates as Partial<Bug>);
+  const bug = await updateBug(id, updates as Partial<Bug>);
   if (!bug) {
     return NextResponse.json({ error: "Bug not found" }, { status: 404 });
   }
@@ -87,13 +70,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const bug = getBugById(id);
+  const bug = await getBugById(id);
   if (!bug) {
     return NextResponse.json({ error: "Bug not found" }, { status: 404 });
   }
   if (bug.reportedByEmail !== session.user.email) {
     return NextResponse.json({ error: "Only the reporter can delete this bug" }, { status: 403 });
   }
-  deleteBug(id);
+  await deleteBug(id);
   return NextResponse.json({ success: true });
 }

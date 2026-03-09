@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getBugById, getCommentsByBugId, addComment } from "@/lib/bugs";
+import { AddBugCommentSchema } from "@/lib/bug-schemas";
 
 export async function GET(
   _request: Request,
@@ -12,10 +13,10 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  if (!getBugById(id)) {
+  if (!(await getBugById(id))) {
     return NextResponse.json({ error: "Bug not found" }, { status: 404 });
   }
-  const comments = getCommentsByBugId(id);
+  const comments = await getCommentsByBugId(id);
   return NextResponse.json(comments);
 }
 
@@ -29,11 +30,13 @@ export async function POST(
   }
   const { id } = await params;
   const body = await request.json();
-  const text = typeof body.body === "string" ? body.body.trim() : "";
-  if (!text) {
-    return NextResponse.json({ error: "Comment body is required" }, { status: 400 });
+  const parsed = AddBugCommentSchema.safeParse(body);
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]?.message ?? "Invalid comment payload";
+    return NextResponse.json({ error: firstError }, { status: 400 });
   }
-  const comment = addComment(id, {
+  const text = parsed.data.body;
+  const comment = await addComment(id, {
     authorName: session.user.name ?? session.user.email ?? "User",
     authorEmail: session.user.email,
     body: text,

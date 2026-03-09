@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserByEmail, validatePassword } from "@/lib/users";
 
 const signInSchema = z.object({
@@ -19,12 +20,16 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const parsed = signInSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
         const email = parsed.data.email.toLowerCase();
         const password = parsed.data.password;
+        const ipHeader = req?.headers?.["x-forwarded-for"];
+        const ip = typeof ipHeader === "string" ? ipHeader.split(",")[0].trim() : "unknown";
+        const allowed = checkRateLimit(`signin:${email}:${ip}`, 10, 10 * 60 * 1000);
+        if (!allowed) return null;
 
         const ok = await validatePassword(email, password);
         if (!ok) return null;
@@ -45,16 +50,24 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    session({ session, user }) {
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email ?? "";
+        token.name = user.name ?? "";
+      }
+      return token;
+    },
+    session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
-        session.user.email = user.email ?? "";
-        session.user.name = user.name ?? "";
-        session.user.image = user.image;
+        session.user.id = token.id ?? token.sub ?? "";
+        session.user.email = token.email ?? "";
+        session.user.name = token.name ?? "";
+        session.user.image = typeof token.picture === "string" ? token.picture : null;
       }
       return session;
     },

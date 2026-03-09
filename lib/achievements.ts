@@ -16,8 +16,8 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
   { id: "bug-slayer", name: "Bug Slayer", description: "Resolve 50 bugs", category: "resolve", requiredCount: 50, icon: "LocalFireDepartment", badgeColor: "#ef4444" },
 ];
 
-function getStatsForAllUsers(): Map<string, { name: string; reported: number; resolved: number }> {
-  const bugs = getAllBugs();
+async function getStatsForAllUsers(): Promise<Map<string, { name: string; reported: number; resolved: number }>> {
+  const bugs = await getAllBugs();
   const map = new Map<string, { name: string; reported: number; resolved: number }>();
 
   for (const bug of bugs) {
@@ -52,8 +52,8 @@ function scoreForBadges(badges: AchievementDef[]): number {
   return badges.reduce((sum, b) => sum + b.requiredCount, 0);
 }
 
-export function getAllAchievements(): UserAchievement[] {
-  const statsMap = getStatsForAllUsers();
+export async function getAllAchievements(): Promise<UserAchievement[]> {
+  const statsMap = await getStatsForAllUsers();
   const result: UserAchievement[] = [];
 
   for (const [email, data] of statsMap) {
@@ -75,7 +75,7 @@ export function getAllAchievements(): UserAchievement[] {
   return result.sort((a, b) => b.totalScore - a.totalScore);
 }
 
-export function getAchievementForUser(email: string): UserAchievement | null {
-  const all = getAllAchievements();
+export async function getAchievementForUser(email: string): Promise<UserAchievement | null> {
+  const all = await getAllAchievements();
   return all.find((a) => a.email === email) ?? null;
 }

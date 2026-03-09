@@ -330,12 +330,14 @@ export default function DashboardPage() {
                 placeholder="Search…"
                 value={globalFilter}
                 onChange={(e) => setGlobalFilter(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRoundedIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRoundedIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
                 sx={{ minWidth: { xs: "100%", sm: 200 }, maxWidth: { sm: 220 } }}
               />

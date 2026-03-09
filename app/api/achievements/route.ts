@@ -8,8 +8,8 @@ export async function GET() {
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const leaderboard = getAllAchievements();
-  const me = getAchievementForUser(session.user.email);
+  const leaderboard = await getAllAchievements();
+  const me = await getAchievementForUser(session.user.email);
   return NextResponse.json({
     me: me ?? {
       email: session.user.email,
