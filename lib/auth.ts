@@ -11,8 +11,11 @@ const signInSchema = z.object({
   password: z.string().min(1),
 });
 
+const nextAuthSecret = process.env.NEXTAUTH_SECRET;
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
+  secret: nextAuthSecret,
   providers: [
     CredentialsProvider({
       name: "Credentials",

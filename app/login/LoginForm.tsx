@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
@@ -17,6 +18,7 @@ import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import BugReportRoundedIcon from "@mui/icons-material/BugReportRounded";
 
 export default function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl =
     searchParams.get("callbackUrl") ?? "/dashboard";
@@ -41,7 +43,12 @@ export default function LoginForm() {
         setLoading(false);
         return;
       }
-      window.location.href = res?.url ?? callbackUrl;
+      const safeCallback =
+        callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+          ? callbackUrl
+          : "/dashboard";
+      router.replace(safeCallback);
+      router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
@@ -136,10 +143,6 @@ export default function LoginForm() {
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5 }}>
             <Link href="/forgot-password">Forgot password?</Link>
-          </Typography>
-
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: "block" }}>
-            Demo: admin@mining-sentry.com / admin123
           </Typography>
         </CardContent>
       </Card>
