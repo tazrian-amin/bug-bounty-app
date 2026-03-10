@@ -17,13 +17,21 @@ async function sendWithResend(input: SendPasswordResetEmailInput) {
   const resend = new Resend(apiKey);
   const from = getFromAddress();
 
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: input.to,
     subject: "Reset your Mining Sentry password",
     text: `We received a request to reset your password.\n\nReset your password: ${input.resetUrl}\n\nIf you did not request this, you can ignore this email.`,
     html: `<p>We received a request to reset your password.</p><p><a href="${input.resetUrl}">Reset your password</a></p><p>If you did not request this, you can ignore this email.</p>`,
   });
+
+  if (error) {
+    throw new Error(`Resend send failed: ${error.name}: ${error.message}`);
+  }
+
+  if (!data?.id) {
+    throw new Error("Resend send failed: missing message id");
+  }
 }
 
 async function sendWithSmtp(input: SendPasswordResetEmailInput) {
