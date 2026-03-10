@@ -60,7 +60,7 @@ export const authOptions: NextAuthOptions = {
             id: user.id,
             email: user.email,
             name: user.name,
-            image: user.avatar,
+            image: null,
           };
         } catch (error) {
           console.error("Credentials authorize failed", error);
@@ -82,6 +82,8 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email ?? "";
         token.name = user.name ?? "";
+        // Keep session JWT small; large base64 avatars can break Set-Cookie on login.
+        token.picture = undefined;
       }
       return token;
     },
