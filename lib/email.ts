@@ -7,7 +7,7 @@ type SendPasswordResetEmailInput = {
 };
 
 function getFromAddress() {
-  return process.env.EMAIL_FROM ?? "no-reply@mining-sentry.com";
+  return process.env.EMAIL_FROM ?? "tazrian@mining-sentry.com";
 }
 
 async function sendWithResend(input: SendPasswordResetEmailInput) {
