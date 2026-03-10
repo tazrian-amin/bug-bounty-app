@@ -6,6 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserByEmail, validatePassword } from "@/lib/users";
 
+const rawNextAuthUrl = process.env.NEXTAUTH_URL?.trim();
+if (rawNextAuthUrl && !/^https?:\/\//i.test(rawNextAuthUrl)) {
+  const protocol = /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(rawNextAuthUrl)
+    ? "http://"
+    : "https://";
+  process.env.NEXTAUTH_URL = `${protocol}${rawNextAuthUrl}`;
+}
+
 const signInSchema = z.object({
   email: z.string().email().trim(),
   password: z.string().min(1),
@@ -24,28 +32,40 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials, req) {
-        const parsed = signInSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+        try {
+          const parsed = signInSchema.safeParse(credentials);
+          if (!parsed.success) return null;
 
-        const email = parsed.data.email.toLowerCase();
-        const password = parsed.data.password;
-        const ipHeader = req?.headers?.["x-forwarded-for"];
-        const ip = typeof ipHeader === "string" ? ipHeader.split(",")[0].trim() : "unknown";
-        const allowed = checkRateLimit(`signin:${email}:${ip}`, 10, 10 * 60 * 1000);
-        if (!allowed) return null;
+          const email = parsed.data.email.toLowerCase();
+          const password = parsed.data.password;
+          const rawHeaders = req?.headers as unknown;
+          const ipHeader =
+            rawHeaders && typeof rawHeaders === "object" && "get" in rawHeaders
+              ? (rawHeaders as Headers).get("x-forwarded-for")
+              : (rawHeaders as Record<string, string | string[] | undefined> | undefined)?.[
+                  "x-forwarded-for"
+                ];
+          const ipValue = Array.isArray(ipHeader) ? ipHeader[0] : ipHeader;
+          const ip = typeof ipValue === "string" ? ipValue.split(",")[0].trim() : "unknown";
+          const allowed = checkRateLimit(`signin:${email}:${ip}`, 10, 10 * 60 * 1000);
+          if (!allowed) return null;
 
-        const ok = await validatePassword(email, password);
-        if (!ok) return null;
+          const ok = await validatePassword(email, password);
+          if (!ok) return null;
 
-        const user = await getUserByEmail(email);
-        if (!user) return null;
+          const user = await getUserByEmail(email);
+          if (!user) return null;
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.avatar,
-        };
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.avatar,
+          };
+        } catch (error) {
+          console.error("Credentials authorize failed", error);
+          return null;
+        }
       },
     }),
   ],

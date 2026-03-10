@@ -6,6 +6,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { getUserByEmail } from "@/lib/users";
 import { sendPasswordResetEmail } from "@/lib/email";
 
+const GENERIC_MESSAGE = "If that email exists, a reset link has been generated.";
+
 export async function POST(request: Request) {
   try {
     const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({
         success: true,
-        message: "If that email exists, a reset link has been generated.",
+        message: GENERIC_MESSAGE,
       });
     }
 
@@ -48,19 +50,28 @@ export async function POST(request: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL ?? new URL(request.url).origin;
+    const baseUrl =
+      process.env.NEXTAUTH_URL ??
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : new URL(request.url).origin);
     const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
 
-    await sendPasswordResetEmail({
-      to: user.email,
-      resetUrl,
-    });
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        resetUrl,
+      });
+    } catch (error) {
+      // Keep response generic to avoid account enumeration and avoid hard 500s
+      // when email provider env vars are incomplete in production.
+      console.error("Failed to send password reset email", error);
+    }
 
     return NextResponse.json({
       success: true,
-      message: "If that email exists, a reset link has been generated.",
+      message: GENERIC_MESSAGE,
     });
-  } catch {
+  } catch (error) {
+    console.error("Forgot password request failed", error);
     return NextResponse.json({ error: "Failed to process request" }, { status: 500 });
   }
 }
